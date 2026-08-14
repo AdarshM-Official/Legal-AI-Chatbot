@@ -1,0 +1,113 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<form method="GET" action="{% url 'core:directory' %}" id="directorySearchForm">
+<section class="directory-hero">
+    <div class="container">
+        <h1>Legal Directory: <span class="highlight">Cases & Laws</span></h1>
+        <p>Explore thousands of indexed Indian Penal Code sections, new 2023 criminal laws, and landmark Supreme Court cases.</p>
+            <div class="search-box directory-search">
+                <input type="text" name="q" value="{{ query }}" placeholder="Semantic search... try 'what is the punishment for cheating'">
+                <button type="submit" class="btn-primary">Search Library</button>
+            </div>
+            <div class="search-chips">
+                <div class="search-chip" onclick="document.querySelector('input[name=q]').value='Punishment for Murder'; document.getElementById('directorySearchForm').submit();">Punishment for Murder</div>
+                <div class="search-chip" onclick="document.querySelector('input[name=q]').value='Definition of Theft'; document.getElementById('directorySearchForm').submit();">Definition of Theft</div>
+                <div class="search-chip" onclick="document.querySelector('input[name=q]').value='Kidnapping laws'; document.getElementById('directorySearchForm').submit();">Kidnapping laws</div>
+            </div>
+    </div>
+</section>
+
+<section class="directory-content">
+    <div class="container grid-container">
+        <!-- Sidebar filters -->
+        <aside class="filters">
+            <h3>Filters</h3>
+            <div class="filter-group">
+                <h4>Type of Law</h4>
+                <label><input type="checkbox" name="type" value="IPC" onchange="document.getElementById('directorySearchForm').submit();" {% if 'IPC' in selected_types %}checked{% endif %}> IPC (1860)</label>
+                <label><input type="checkbox" name="type" value="BNS" onchange="document.getElementById('directorySearchForm').submit();" {% if 'BNS' in selected_types %}checked{% endif %}> BNS (2023)</label>
+                <label><input type="checkbox" name="type" value="BNSS" onchange="document.getElementById('directorySearchForm').submit();" {% if 'BNSS' in selected_types %}checked{% endif %}> BNSS (2023)</label>
+                <label><input type="checkbox" name="type" value="BSA" onchange="document.getElementById('directorySearchForm').submit();" {% if 'BSA' in selected_types %}checked{% endif %}> BSA (2023)</label>
+                <label><input type="checkbox" name="type" value="Case Law" onchange="document.getElementById('directorySearchForm').submit();" {% if 'Case Law' in selected_types %}checked{% endif %}> Landmark Cases</label>
+            </div>
+            
+            <div class="filter-group" style="margin-top: 2rem;">
+                <h4>Sort By</h4>
+                <label><input type="radio" name="sort" checked> Relevance</label>
+                <label><input type="radio" name="sort"> Section (Asc)</label>
+            </div>
+        </aside>
+        
+        <!-- Results -->
+        <main class="results">
+            {% for item in legal_documents %}
+            <div class="result-card">
+                <div class="card-tag">{{ item.doc_type }}</div>
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.summary|truncatechars:200 }}</p>
+                <button class="btn-outline btn-small view-doc-btn" 
+                        data-title="{{ item.title }}" 
+                        data-type="{{ item.doc_type }}" 
+                        data-content="{{ item.content }}">
+                    {% if item.doc_type == 'Case Law' %}View Case Details{% else %}Read Full Section{% endif %}
+                </button>
+            </div>
+            {% empty %}
+            <div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
+                <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-main);">No documents found</h3>
+                <p>Try adjusting your search query or filters to find what you're looking for.</p>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+</section>
+</form>
+
+<!-- Read Full Section Modal -->
+<div class="modal-overlay" id="documentModal">
+    <div class="login-modal" style="max-width: 600px; padding: 2rem;">
+        <button class="modal-close" id="closeDocModal">&times;</button>
+        <div style="text-align: left; margin-bottom: 1.5rem;">
+            <div class="card-tag" id="docModalType" style="margin-bottom: 0.5rem; display: inline-block;">IPC Section</div>
+            <h2 id="docModalTitle" style="text-align: left; font-size: 1.8rem;">Section Title</h2>
+        </div>
+        
+        <div id="docModalContent" style="max-height: 50vh; overflow-y: auto; text-align: left; color: #334155; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; padding-right: 10px;">
+            Content goes here
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const docModal = document.getElementById("documentModal");
+        const closeDocModal = document.getElementById("closeDocModal");
+        const docModalTitle = document.getElementById("docModalTitle");
+        const docModalType = document.getElementById("docModalType");
+        const docModalContent = document.getElementById("docModalContent");
+        
+        const viewBtns = document.querySelectorAll(".view-doc-btn");
+        
+        viewBtns.forEach(btn => {
+            btn.addEventListener("click", function() {
+                docModalTitle.textContent = this.dataset.title;
+                docModalType.textContent = this.dataset.type;
+                docModalContent.textContent = this.dataset.content;
+                docModal.classList.add("active");
+            });
+        });
+
+        closeDocModal.addEventListener("click", function() {
+            docModal.classList.remove("active");
+        });
+
+        docModal.addEventListener("click", function(e) {
+            if (e.target === docModal) {
+                docModal.classList.remove("active");
+            }
+        });
+    });
+</script>
+{% endblock %}

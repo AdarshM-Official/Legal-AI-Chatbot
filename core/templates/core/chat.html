@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Research - LegalAI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'core/css/chat.css' %}">
+</head>
+<body>
+    <nav class="chat-topnav">
+        <div class="nav-left" style="display: flex; align-items: center; gap: 2rem;">
+            <a href="{% url 'core:index' %}" class="logo-link">⚖️ LegalAI</a>
+            <a href="{% url 'core:directory' %}" style="text-decoration: none; font-weight: 600; color: var(--text-muted); font-size: 0.95rem;">Cases & IPC Directory</a>
+        </div>
+        <div class="nav-right">
+            {% if request.user.is_authenticated %}
+                <div class="user-profile">
+                    <span class="avatar-circle">👤</span>
+                    <span class="username">{{ request.user.username }}</span>
+                </div>
+            {% else %}
+                <a href="#" class="btn-primary btn-small" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Log In</a>
+            {% endif %}
+        </div>
+    </nav>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn">Start New Matter</button>
+            </div>
+            
+            <div class="login-banner">
+                <span class="banner-icon">🔒</span>
+                <div class="banner-content">
+                    <p><strong>Unregistered Session</strong></p>
+                    <p class="small">Sign in to save your research history securely.</p>
+                </div>
+                <a href="#" class="btn-outline btn-small">Log In</a>
+            </div>
+
+            <div class="chat-history">
+                {% if past_chats %}
+                <div class="history-group">
+                    <p class="history-date">Recent Research</p>
+                    {% for past_chat in past_chats %}
+                    <a href="#" class="history-item {% if past_chat.id == current_chat.id %}active{% endif %}">
+                        <span class="folder-icon">📁</span> {{ past_chat.title }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="history-group">
+                    <p class="history-item" style="color: var(--text-muted); font-size: 0.85rem; padding-left: 1rem; background: transparent; cursor: default;">No recent sessions</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="sidebar-footer">
+                <a href="{% url 'core:index' %}" class="back-home">← Return to Dashboard</a>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace-main">
+            <div class="chat-header">
+                <div class="header-title">
+                    <span class="tag">Active Matter</span>
+                    <h2>{{ current_chat.title|default:"New Matter" }}</h2>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" title="Export Memo">📥 Export Memo</button>
+                    <button class="btn-icon" title="Generate Brief">📑 Draft Brief</button>
+                </div>
+            </div>
+
+            <div class="workspace-layout">
+                <!-- Left: Chat Interface -->
+                <div class="chat-interface">
+                    <div class="chat-messages">
+                        {% for message in messages %}
+                            {% if message.role == 'user' %}
+                            <div class="message user-message">
+                                <div class="message-content">
+                                    {{ message.content }}
+                                </div>
+                            </div>
+                            {% elif message.role == 'ai' %}
+                            <div class="message ai-message">
+                                <div class="ai-avatar">⚖️</div>
+                                <div class="message-content">
+                                    <div class="legal-memo">
+                                        {{ message.content|safe }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% empty %}
+                            <div style="text-align: center; color: var(--text-muted); margin-top: 5rem;">
+                                <h3>Start a new legal research session</h3>
+                                <p style="margin-top: 0.5rem;">Type your query in the box below to begin your analysis.</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="chat-input-container">
+                        <div class="input-box">
+                            <textarea placeholder="Ask a follow-up question, request a case law summary, or ask to draft a notice..." rows="1"></textarea>
+                            <button class="send-btn">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            </button>
+                        </div>
+                        <p class="disclaimer">LegalAI provides research assistance based on legal databases. It does not constitute attorney-client privilege or formal legal advice.</p>
+                    </div>
+                </div>
+
+
+            </div>
+        </main>
+    </div>
+    
+    {% include 'core/login_modal.html' %}
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const sendBtn = document.querySelector(".send-btn");
+        const textarea = document.querySelector(".input-box textarea");
+        const messagesContainer = document.querySelector(".chat-messages");
+
+        function addMessage(content, role) {
+            // Remove empty state if present
+            const emptyState = document.querySelector(".chat-messages > div[style*='text-align: center']");
+            if (emptyState) emptyState.remove();
+
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `message ${role}-message`;
+            
+            let innerHtml = '';
+            if (role === 'user') {
+                innerHtml = `<div class="message-content">${content.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>`;
+            } else {
+                let formattedContent = content
+                    .replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br>');
+                    
+                innerHtml = `
+                    <div class="ai-avatar">⚖️</div>
+                    <div class="message-content">
+                        <div class="legal-memo">${formattedContent}</div>
+                    </div>`;
+            }
+            
+            msgDiv.innerHTML = innerHtml;
+            messagesContainer.appendChild(msgDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            return msgDiv;
+        }
+
+        async function sendMessage() {
+            const text = textarea.value.trim();
+            if (!text) return;
+
+            textarea.value = "";
+            addMessage(text, 'user');
+            
+            const loadingDiv = addMessage("Analyzing legal context...", 'ai');
+
+            try {
+                const response = await fetch('/api/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const data = await response.json();
+                messagesContainer.removeChild(loadingDiv);
+
+                if (response.ok) {
+                    addMessage(data.response, 'ai');
+                } else {
+                    addMessage(`Error: ${data.error || 'Failed to connect to AI service.'}`, 'ai');
+                }
+            } catch (error) {
+                messagesContainer.removeChild(loadingDiv);
+                addMessage("Error: Could not connect to the server.", 'ai');
+            }
+        }
+
+        sendBtn.addEventListener("click", sendMessage);
+        textarea.addEventListener("keydown", function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    });
+    </script>
+</body>
+</html>

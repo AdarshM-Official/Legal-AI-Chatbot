@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Legal Assistant - Your Smart Legal Research Platform</title>
+    <meta name="description" content="An intelligent legal research platform using AI to simplify legal questions and access Acts, Rules, and Case Laws.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'core/css/styles.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">⚖️ LegalAI</div>
+        <div class="nav-links">
+            <a href="{% url 'core:index' %}">Home</a>
+            <a href="{% url 'core:directory' %}">Cases & IPC Directory</a>
+            <a href="{% url 'core:index' %}#how-it-works">How it Works</a>
+        </div>
+        <div class="nav-actions">
+            <a href="#" class="btn-primary">Log In</a>
+        </div>
+    </nav>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>&copy; 2026 AI Legal Assistant. All rights reserved.</p>
+    </footer>
+    
+    {% include 'core/login_modal.html' %}
+</body>
+</html>
