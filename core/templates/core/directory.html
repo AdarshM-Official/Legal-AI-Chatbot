@@ -2,112 +2,414 @@
 {% load static %}
 
 {% block content %}
-<form method="GET" action="{% url 'core:directory' %}" id="directorySearchForm">
-<section class="directory-hero">
-    <div class="container">
-        <h1>Legal Directory: <span class="highlight">Cases & Laws</span></h1>
-        <p>Explore thousands of indexed Indian Penal Code sections, new 2023 criminal laws, and landmark Supreme Court cases.</p>
-            <div class="search-box directory-search">
-                <input type="text" name="q" value="{{ query }}" placeholder="Semantic search... try 'what is the punishment for cheating'">
-                <button type="submit" class="btn-primary">Search Library</button>
-            </div>
-            <div class="search-chips">
-                <div class="search-chip" onclick="document.querySelector('input[name=q]').value='Punishment for Murder'; document.getElementById('directorySearchForm').submit();">Punishment for Murder</div>
-                <div class="search-chip" onclick="document.querySelector('input[name=q]').value='Definition of Theft'; document.getElementById('directorySearchForm').submit();">Definition of Theft</div>
-                <div class="search-chip" onclick="document.querySelector('input[name=q]').value='Kidnapping laws'; document.getElementById('directorySearchForm').submit();">Kidnapping laws</div>
-            </div>
-    </div>
-</section>
+<style>
+/* Research Directory Styles */
+.dir-page { background: #f8fafc; min-height: calc(100vh - 60px); padding-top: 4rem; }
+.dir-hero { background: #fff; padding: 2.5rem 1.5rem; border-bottom: 1px solid #e2e8f0; text-align: center; }
+.dir-hero h1 { font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.75rem; }
+.dir-hero p { color: #64748b; font-size: 1.05rem; max-width: 600px; margin: 0 auto 2rem; }
 
-<section class="directory-content">
-    <div class="container grid-container">
-        <!-- Sidebar filters -->
-        <aside class="filters">
-            <h3>Filters</h3>
-            <div class="filter-group">
-                <h4>Type of Law</h4>
-                <label><input type="checkbox" name="type" value="IPC" onchange="document.getElementById('directorySearchForm').submit();" {% if 'IPC' in selected_types %}checked{% endif %}> IPC (1860)</label>
-                <label><input type="checkbox" name="type" value="BNS" onchange="document.getElementById('directorySearchForm').submit();" {% if 'BNS' in selected_types %}checked{% endif %}> BNS (2023)</label>
-                <label><input type="checkbox" name="type" value="BNSS" onchange="document.getElementById('directorySearchForm').submit();" {% if 'BNSS' in selected_types %}checked{% endif %}> BNSS (2023)</label>
-                <label><input type="checkbox" name="type" value="BSA" onchange="document.getElementById('directorySearchForm').submit();" {% if 'BSA' in selected_types %}checked{% endif %}> BSA (2023)</label>
-                <label><input type="checkbox" name="type" value="Case Law" onchange="document.getElementById('directorySearchForm').submit();" {% if 'Case Law' in selected_types %}checked{% endif %}> Landmark Cases</label>
+.dir-search-form { max-width: 700px; margin: 0 auto; position: relative; display: flex; gap: 0.5rem; }
+.dir-search-form input { flex: 1; padding: 1rem 1.5rem; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 1.05rem; font-family: inherit; transition: border-color 0.2s; }
+.dir-search-form input:focus { outline: none; border-color: #2563eb; }
+.dir-search-form button { padding: 0 2rem; background: #2563eb; color: #fff; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; transition: background 0.2s; }
+.dir-search-form button:hover { background: #1d4ed8; }
+
+.dir-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 1rem; }
+.dir-chip { padding: 0.4rem 1rem; background: #f1f5f9; color: #334155; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+.dir-chip:hover { background: #e2e8f0; border-color: #cbd5e1; }
+
+.dir-layout { display: grid; grid-template-columns: 260px 1fr 400px; gap: 1.5rem; max-width: 1400px; margin: 0 auto; padding: 2rem 1.5rem; align-items: start; }
+@media (max-width: 1100px) { .dir-layout { grid-template-columns: 240px 1fr; } .preview-panel { display: none; } }
+@media (max-width: 768px) { .dir-layout { grid-template-columns: 1fr; } .filters-panel { display: none; } }
+
+/* Filters Panel */
+.filters-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; position: sticky; top: 80px; }
+.filter-group { margin-bottom: 1.5rem; }
+.filter-group:last-child { margin-bottom: 0; }
+.filter-group h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 700; margin-bottom: 0.75rem; }
+.filter-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; color: #334155; margin-bottom: 0.5rem; cursor: pointer; }
+.filter-label input[type="checkbox"], .filter-label input[type="radio"] { accent-color: #2563eb; width: 16px; height: 16px; }
+
+/* Results Panel */
+.results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.results-count { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+.active-filters { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.active-filter { padding: 0.3rem 0.8rem; background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; border-radius: 16px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; }
+.active-filter a { color: #1e40af; text-decoration: none; font-weight: 800; cursor: pointer; }
+
+.result-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; transition: box-shadow 0.2s, border-color 0.2s; }
+.result-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-color: #cbd5e1; }
+.rc-meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.rc-type { font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.6rem; border-radius: 6px; background: #f1f5f9; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; }
+.rc-match { font-size: 0.75rem; color: #16a34a; font-weight: 600; background: #dcfce7; padding: 0.2rem 0.6rem; border-radius: 6px; }
+.result-card h3 { font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; }
+.result-card p { color: #475569; font-size: 0.95rem; line-height: 1.5; margin-bottom: 1.25rem; }
+.rc-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer; text-decoration: none; border: 1px solid transparent; transition: all 0.2s; }
+.btn-sm-primary { background: #2563eb; color: #fff; }
+.btn-sm-primary:hover { background: #1d4ed8; }
+.btn-sm-outline { background: #fff; color: #334155; border-color: #e2e8f0; }
+.btn-sm-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.mapping-badge { margin-top: 1rem; padding: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; }
+.mapping-badge.new { background: #f0fdf4; border-color: #bbf7d0; }
+
+/* Pagination */
+.pagination { display: flex; justify-content: center; gap: 0.5rem; margin-top: 2rem; }
+.page-btn { padding: 0.5rem 1rem; border: 1px solid #e2e8f0; background: #fff; border-radius: 8px; color: #334155; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+.page-btn:hover { background: #f8fafc; }
+.page-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+/* Preview Panel */
+.preview-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; height: calc(100vh - 100px); position: sticky; top: 80px; display: flex; flex-direction: column; overflow: hidden; }
+.pp-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.pp-type { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+.pp-title { font-size: 1.25rem; font-weight: 800; color: #0f172a; }
+.pp-actions { display: flex; gap: 0.5rem; margin-top: 1rem; }
+.pp-tabs { display: flex; border-bottom: 1px solid #e2e8f0; }
+.pp-tab { flex: 1; padding: 0.75rem; text-align: center; font-size: 0.85rem; font-weight: 600; color: #64748b; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+.pp-tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+.pp-content { padding: 1.5rem; overflow-y: auto; flex: 1; font-size: 0.95rem; line-height: 1.6; color: #334155; white-space: pre-wrap; }
+.pp-pane { display: none; }
+.pp-pane.active { display: block; }
+
+.related-card { padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 0.75rem; cursor: pointer; transition: border-color 0.2s; }
+.related-card:hover { border-color: #94a3b8; }
+.related-card h5 { font-size: 0.95rem; font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
+.related-card p { font-size: 0.85rem; color: #64748b; margin: 0; }
+
+.empty-state { text-align: center; padding: 4rem 2rem; color: #64748b; }
+.empty-state h3 { font-size: 1.25rem; color: #0f172a; margin-bottom: 0.5rem; }
+</style>
+
+<div class="dir-page">
+    <section class="dir-hero">
+        <h1>Advanced Legal Research</h1>
+        <p>Semantic search across the Indian Penal Code, New Criminal Laws (BNS, BNSS, BSA), and Landmark Cases.</p>
+        
+        <form method="GET" action="{% url 'core:directory' %}" class="dir-search-form" id="searchForm">
+            <input type="text" name="q" value="{{ query }}" placeholder="Search e.g., 'IPC 420', 'Punishment for theft'...">
+            {% for t in selected_types %}
+            <input type="hidden" name="law" value="{{ t }}" class="law-hidden-input">
+            {% endfor %}
+            <input type="hidden" name="sort" value="{{ sort_by }}" id="sortInput">
+            <button type="submit">Search</button>
+        </form>
+        
+        <div class="dir-chips">
+            <div class="dir-chip" onclick="quickSearch('Cheating')">Cheating</div>
+            <div class="dir-chip" onclick="quickSearch('Murder')">Murder</div>
+            <div class="dir-chip" onclick="quickSearch('Bail')">Bail</div>
+            <div class="dir-chip" onclick="quickSearch('Cyber Fraud')">Cyber Fraud</div>
+            <div class="dir-chip" onclick="quickSearch('Evidence')">Evidence</div>
+            <div class="dir-chip" onclick="quickSearch('Domestic Cruelty')">Domestic Cruelty</div>
+        </div>
+    </section>
+
+    <div class="dir-layout">
+        <!-- Filters (Left) -->
+        <aside class="filters-panel">
+            <form id="filterForm">
+                <div class="filter-group">
+                    <h4>Law Collection</h4>
+                    <label class="filter-label">
+                        <input type="checkbox" name="law" value="IPC" onchange="updateFilters()" {% if 'IPC' in selected_types %}checked{% endif %}> IPC (1860)
+                    </label>
+                    <label class="filter-label">
+                        <input type="checkbox" name="law" value="BNS" onchange="updateFilters()" {% if 'BNS' in selected_types %}checked{% endif %}> BNS (2023)
+                    </label>
+                    <label class="filter-label">
+                        <input type="checkbox" name="law" value="BNSS" onchange="updateFilters()" {% if 'BNSS' in selected_types %}checked{% endif %}> BNSS (2023)
+                    </label>
+                    <label class="filter-label">
+                        <input type="checkbox" name="law" value="BSA" onchange="updateFilters()" {% if 'BSA' in selected_types %}checked{% endif %}> BSA (2023)
+                    </label>
+                </div>
+                
+                <div class="filter-group">
+                    <h4>Content Type</h4>
+                    <label class="filter-label">
+                        <input type="checkbox" name="law" value="Case Law" onchange="updateFilters()" {% if 'Case Law' in selected_types %}checked{% endif %}> Case Law
+                    </label>
+                </div>
+
+                <div class="filter-group" style="margin-top: 2rem;">
+                    <h4>Sort By</h4>
+                    <label class="filter-label">
+                        <input type="radio" name="sort" value="relevance" onchange="updateFilters()" {% if sort_by == 'relevance' %}checked{% endif %}> Relevance
+                    </label>
+                    <label class="filter-label">
+                        <input type="radio" name="sort" value="section_asc" onchange="updateFilters()" {% if sort_by == 'section_asc' %}checked{% endif %}> Title (Ascending)
+                    </label>
+                    <label class="filter-label">
+                        <input type="radio" name="sort" value="section_desc" onchange="updateFilters()" {% if sort_by == 'section_desc' %}checked{% endif %}> Title (Descending)
+                    </label>
+                </div>
+                
+                <input type="hidden" name="q" value="{{ query }}">
+            </form>
+        </aside>
+
+        <!-- Results (Center) -->
+        <main class="results-panel">
+            <div class="results-header">
+                <div class="results-count">
+                    {% if query %}{{ total_results }} results for "{{ query }}"{% else %}Curated Law Directory{% endif %}
+                </div>
             </div>
             
-            <div class="filter-group" style="margin-top: 2rem;">
-                <h4>Sort By</h4>
-                <label><input type="radio" name="sort" checked> Relevance</label>
-                <label><input type="radio" name="sort"> Section (Asc)</label>
+            {% if active_filters %}
+            <div class="active-filters">
+                {% for f in active_filters %}
+                <div class="active-filter">
+                    {{ f.label }} 
+                    <a href="#" onclick="removeFilter('{{ f.key }}', '{{ f.value }}')">✕</a>
+                </div>
+                {% endfor %}
+                <div class="active-filter" style="background:#f1f5f9; border-color:#cbd5e1;">
+                    <a href="{% url 'core:directory' %}" style="color:#475569;">Clear All</a>
+                </div>
             </div>
-        </aside>
-        
-        <!-- Results -->
-        <main class="results">
-            {% for item in legal_documents %}
+            {% endif %}
+
+            {% for item in page_obj %}
             <div class="result-card">
-                <div class="card-tag">{{ item.doc_type }}</div>
-                <h3>{{ item.title }}</h3>
-                <p>{{ item.summary|truncatechars:200 }}</p>
-                <button class="btn-outline btn-small view-doc-btn" 
-                        data-title="{{ item.title }}" 
-                        data-type="{{ item.doc_type }}" 
-                        data-content="{{ item.content }}">
-                    {% if item.doc_type == 'Case Law' %}View Case Details{% else %}Read Full Section{% endif %}
-                </button>
+                <div class="rc-meta">
+                    <span class="rc-type">{{ item.document.doc_type }}</span>
+                    {% if item.match_type %}<span class="rc-match">{{ item.match_type }}</span>{% endif %}
+                </div>
+                <h3>{{ item.document.title }}</h3>
+                <p>{{ item.document.summary|truncatechars:180 }}</p>
+                
+                {% if item.mapping %}
+                    {% if item.mapping.type == 'new' %}
+                    <div class="mapping-badge new">
+                        <span><strong>Replaced By:</strong> {{ item.mapping.target }}</span>
+                    </div>
+                    {% else %}
+                    <div class="mapping-badge">
+                        <span><strong>Old Equivalent:</strong> {{ item.mapping.target }}</span>
+                    </div>
+                    {% endif %}
+                {% endif %}
+                
+                <div class="rc-actions" style="margin-top: 1rem;">
+                    <button class="btn-sm btn-sm-primary" onclick="loadPreview({{ item.document.id }})">Read Full</button>
+                    <a href="{% url 'core:chat' %}?doc_id={{ item.document.id }}" class="btn-sm btn-sm-outline">Ask LegalAI</a>
+                </div>
             </div>
             {% empty %}
-            <div style="text-align: center; padding: 4rem 2rem; color: var(--text-muted);">
-                <h3 style="font-size: 1.5rem; margin-bottom: 1rem; color: var(--text-main);">No documents found</h3>
-                <p>Try adjusting your search query or filters to find what you're looking for.</p>
+            <div class="empty-state">
+                <h3>No legal documents found.</h3>
+                <p>Try adjusting your search terms, clearing filters, or asking LegalAI.</p>
+                <a href="{% url 'core:directory' %}" class="btn-sm btn-sm-outline" style="display:inline-block; margin-top:1rem;">Clear Filters</a>
             </div>
             {% endfor %}
-        </main>
-    </div>
-</section>
-</form>
 
-<!-- Read Full Section Modal -->
-<div class="modal-overlay" id="documentModal">
-    <div class="login-modal" style="max-width: 600px; padding: 2rem;">
-        <button class="modal-close" id="closeDocModal">&times;</button>
-        <div style="text-align: left; margin-bottom: 1.5rem;">
-            <div class="card-tag" id="docModalType" style="margin-bottom: 0.5rem; display: inline-block;">IPC Section</div>
-            <h2 id="docModalTitle" style="text-align: left; font-size: 1.8rem;">Section Title</h2>
-        </div>
-        
-        <div id="docModalContent" style="max-height: 50vh; overflow-y: auto; text-align: left; color: #334155; line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; padding-right: 10px;">
-            Content goes here
-        </div>
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="pagination">
+                {% if page_obj.has_previous %}
+                <a class="page-btn" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">&laquo;</a>
+                {% endif %}
+                
+                {% for i in page_obj.paginator.page_range %}
+                    {% if page_obj.number == i %}
+                        <span class="page-btn active">{{ i }}</span>
+                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                        <a class="page-btn" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ i }}">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a class="page-btn" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">&raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </main>
+
+        <!-- Preview (Right) -->
+        <aside class="preview-panel" id="previewPanel">
+            <div class="empty-state" id="previewEmpty" style="margin: auto;">
+                <h3>Legal Reading Panel</h3>
+                <p>Select a document to read its full text, generate simple explanations, and view related laws.</p>
+            </div>
+            
+            <div id="previewContentWrap" style="display:none; height:100%; display:flex; flex-direction:column;">
+                <div class="pp-header">
+                    <div class="pp-type" id="ppType">Statute</div>
+                    <div class="pp-title" id="ppTitle">Select a Document</div>
+                    <div class="pp-actions">
+                        <button class="btn-sm btn-sm-outline" id="btnExplain" onclick="generateExplanation()">Explain Simply</button>
+                        <button class="btn-sm btn-sm-outline" id="btnSave" onclick="toggleSave()">🔖 Save</button>
+                    </div>
+                </div>
+                <div class="pp-tabs">
+                    <button class="pp-tab active" onclick="switchPreviewTab('text', this)">Original Text</button>
+                    <button class="pp-tab" onclick="switchPreviewTab('related', this)">Related</button>
+                </div>
+                <div class="pp-content">
+                    <div id="pane-text" class="pp-pane active"></div>
+                    <div id="pane-related" class="pp-pane">
+                        <div id="mappingInfo" style="margin-bottom: 1.5rem;"></div>
+                        <h4 style="font-size: 0.9rem; color: #64748b; margin-bottom: 0.5rem; text-transform:uppercase;">Semantic Matches</h4>
+                        <div id="relatedList"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const docModal = document.getElementById("documentModal");
-        const closeDocModal = document.getElementById("closeDocModal");
-        const docModalTitle = document.getElementById("docModalTitle");
-        const docModalType = document.getElementById("docModalType");
-        const docModalContent = document.getElementById("docModalContent");
-        
-        const viewBtns = document.querySelectorAll(".view-doc-btn");
-        
-        viewBtns.forEach(btn => {
-            btn.addEventListener("click", function() {
-                docModalTitle.textContent = this.dataset.title;
-                docModalType.textContent = this.dataset.type;
-                docModalContent.textContent = this.dataset.content;
-                docModal.classList.add("active");
-            });
-        });
+let currentDocId = null;
 
-        closeDocModal.addEventListener("click", function() {
-            docModal.classList.remove("active");
-        });
+function quickSearch(query) {
+    document.querySelector('input[name="q"]').value = query;
+    document.getElementById('searchForm').submit();
+}
 
-        docModal.addEventListener("click", function(e) {
-            if (e.target === docModal) {
-                docModal.classList.remove("active");
+function updateFilters() {
+    document.getElementById('filterForm').submit();
+}
+
+function removeFilter(key, value) {
+    // Reconstruct URL parameters without this filter
+    const urlParams = new URLSearchParams(window.location.search);
+    if(key === 'q') {
+        urlParams.delete('q');
+    } else {
+        const values = urlParams.getAll(key);
+        urlParams.delete(key);
+        values.forEach(v => {
+            if (v !== value && v !== '') {
+                urlParams.append(key, v);
             }
         });
-    });
+    }
+    window.location.search = urlParams.toString();
+}
+
+async function loadPreview(docId) {
+    currentDocId = docId;
+    document.getElementById('previewEmpty').style.display = 'none';
+    document.getElementById('previewContentWrap').style.display = 'flex';
+    document.getElementById('pane-text').innerHTML = '<div style="text-align:center; padding:2rem;"><div class="spinner"></div> Loading...</div>';
+    
+    // Switch to text tab
+    switchPreviewTab('text', document.querySelector('.pp-tab'));
+
+    try {
+        const res = await fetch(`/api/directory/${docId}/preview/`);
+        const data = await res.json();
+        
+        document.getElementById('ppTitle').textContent = data.title;
+        document.getElementById('ppType').textContent = data.type;
+        document.getElementById('pane-text').textContent = data.content;
+        
+        // Save state
+        const btnSave = document.getElementById('btnSave');
+        if (data.is_saved) {
+            btnSave.textContent = '✅ Saved';
+            btnSave.classList.add('btn-sm-primary');
+            btnSave.classList.remove('btn-sm-outline');
+        } else {
+            btnSave.textContent = '🔖 Save';
+            btnSave.classList.remove('btn-sm-primary');
+            btnSave.classList.add('btn-sm-outline');
+        }
+        
+        // Related & Mapping
+        const mappingDiv = document.getElementById('mappingInfo');
+        if (data.mapping) {
+            const mText = data.mapping.type === 'new' ? 'Replaced By: ' : 'Old Equivalent: ';
+            mappingDiv.innerHTML = `<div class="mapping-badge ${data.mapping.type}"><strong>${mText}</strong> ${data.mapping.target}</div>`;
+        } else {
+            mappingDiv.innerHTML = '';
+        }
+        
+        const relatedList = document.getElementById('relatedList');
+        relatedList.innerHTML = '';
+        if (data.related && data.related.length > 0) {
+            data.related.forEach(r => {
+                relatedList.innerHTML += `
+                    <div class="related-card" onclick="loadPreview(${r.id})">
+                        <h5>${r.title} <span class="rc-type" style="font-size:0.6rem;">${r.type}</span></h5>
+                        <p>${r.summary}</p>
+                    </div>
+                `;
+            });
+        } else {
+            relatedList.innerHTML = '<p>No semantically related provisions found.</p>';
+        }
+        
+        // Reset explanation button
+        document.getElementById('btnExplain').textContent = 'Explain Simply';
+        
+    } catch (err) {
+        document.getElementById('pane-text').innerHTML = '<div class="alert alert-error">Failed to load document.</div>';
+    }
+}
+
+async function generateExplanation() {
+    if (!currentDocId) return;
+    const btn = document.getElementById('btnExplain');
+    const textPane = document.getElementById('pane-text');
+    
+    btn.textContent = 'Generating...';
+    btn.disabled = true;
+    
+    try {
+        const res = await fetch(`/api/directory/${currentDocId}/explain/`);
+        const data = await res.json();
+        
+        if (data.explanation) {
+            // Prepend explanation
+            const explHtml = `<div style="background:#eff6ff; padding:1.25rem; border-radius:12px; border:1px solid #bfdbfe; margin-bottom:1.5rem;">
+                <h4 style="color:#1e40af; margin-bottom:0.5rem; font-weight:700;">✨ AI Explanation</h4>
+                <div style="color:#1e3a8a; line-height:1.6; font-size:0.95rem;">${data.explanation.replace(/\n/g, '<br>')}</div>
+            </div>`;
+            textPane.innerHTML = explHtml + `<div><h4 style="color:#64748b; font-size:0.85rem; text-transform:uppercase; margin-bottom:0.5rem;">Original Text</h4>${textPane.textContent}</div>`;
+        } else {
+            alert('Could not generate explanation: ' + (data.error || 'Unknown error'));
+        }
+    } catch(err) {
+        alert('Request failed.');
+    }
+    
+    btn.textContent = 'Explained';
+}
+
+async function toggleSave() {
+    if (!currentDocId) return;
+    try {
+        const res = await fetch(`/api/directory/${currentDocId}/save/`, { method: 'POST' });
+        if (res.status === 401) {
+            alert('Please log in to save documents.');
+            return;
+        }
+        const data = await res.json();
+        const btnSave = document.getElementById('btnSave');
+        if (data.status === 'saved') {
+            btnSave.textContent = '✅ Saved';
+            btnSave.classList.add('btn-sm-primary');
+            btnSave.classList.remove('btn-sm-outline');
+        } else if (data.status === 'unsaved') {
+            btnSave.textContent = '🔖 Save';
+            btnSave.classList.remove('btn-sm-primary');
+            btnSave.classList.add('btn-sm-outline');
+        }
+    } catch(err) {
+        console.error('Save failed', err);
+    }
+}
+
+function switchPreviewTab(paneId, btn) {
+    document.querySelectorAll('.pp-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.pp-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('pane-' + paneId).classList.add('active');
+    btn.classList.add('active');
+}
 </script>
 {% endblock %}

@@ -122,3 +122,17 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ---------------------------------------------------------------------------
+# RAG / ChromaDB Settings
+# ---------------------------------------------------------------------------
+
+# Path to the persistent ChromaDB storage directory
+CHROMA_DB_PATH = BASE_DIR / 'chroma_db'
+
+# Number of documents to retrieve from ChromaDB per query
+RAG_TOP_K = 5
+
+# L2 distance threshold — results with distance ABOVE this are discarded
+# as insufficiently relevant.  Lower = stricter.  Typical range: 0.8 – 1.5
+RAG_RELEVANCE_THRESHOLD = 1.2

@@ -1,105 +1,105 @@
-{% extends "core/base.html" %}
+{% extends 'core/base.html' %}
 {% load static %}
 
 {% block content %}
-<section class="hero">
+  <section class="hero">
     <div class="hero-container">
-        <div class="hero-content-left">
-            <div class="badge">✨ Powered by Advanced AI</div>
-            <h1>Democratizing Legal Knowledge with <span class="highlight">AI</span></h1>
-            <p>Your intelligent legal research platform. Access the Constitution, Acts, Rules, and Case Laws effortlessly and get accurate, source-based answers instantly.</p>
-            <div class="cta-group-left">
-                <a href="{% url 'core:chat' %}" class="btn-primary btn-large">Start Researching Now</a>
-                <a href="#how-it-works" class="btn-outline btn-large">See How It Works</a>
-            </div>
-            <div class="hero-stats">
-                <div class="stat">
-                    <span class="stat-num">10k+</span>
-                    <span class="stat-label">Legal Documents</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-num">99%</span>
-                    <span class="stat-label">Accuracy</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-num">24/7</span>
-                    <span class="stat-label">Instant Answers</span>
-                </div>
-            </div>
+      <div class="hero-content-left">
+        <div class="badge">✨ Powered by Advanced AI</div>
+        <h1>Democratizing Legal Knowledge with <span class="highlight">AI</span></h1>
+        <p>Your intelligent legal research platform. Access the Constitution, Acts, Rules, and Case Laws effortlessly and get accurate, source-based answers instantly.</p>
+        <div class="cta-group-left">
+          <a href="{% url 'core:chat' %}" class="btn-primary btn-large">Start Researching Now</a>
+          <a href="#how-it-works" class="btn-outline btn-large">See How It Works</a>
         </div>
-        <div class="hero-visual-right">
-            <div class="glass-panel">
-                <div class="mockup-header">
-                    <div class="dots">
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>
-                <div class="mockup-body">
-                    <div class="chat-bubble user-bubble">What are my rights as a tenant in India?</div>
-                    <div class="chat-bubble ai-bubble">
-                        <div class="ai-title">⚖️ LegalAI</div>
-                        <p>Under the Rent Control Act, you have the right to a written agreement, protection against arbitrary eviction, and the right to basic amenities...</p>
-                        <div class="source-chip">Source: Rent Control Act, Sec 4</div>
-                    </div>
-                </div>
-            </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-num">10k+</span>
+            <span class="stat-label">Legal Documents</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">99%</span>
+            <span class="stat-label">Accuracy</span>
+          </div>
+          <div class="stat">
+            <span class="stat-num">24/7</span>
+            <span class="stat-label">Instant Answers</span>
+          </div>
         </div>
+      </div>
+      <div class="hero-visual-right">
+        <div class="glass-panel">
+          <div class="mockup-header">
+            <div class="dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="mockup-body">
+            <div class="chat-bubble user-bubble">What are my rights as a tenant in India?</div>
+            <div class="chat-bubble ai-bubble">
+              <div class="ai-title">⚖️ LegalAI</div>
+              <p>Under the Rent Control Act, you have the right to a written agreement, protection against arbitrary eviction, and the right to basic amenities...</p>
+              <div class="source-chip">Source: Rent Control Act, Sec 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-</section>
+  </section>
 
-<section id="features" class="features">
+  <section id="features" class="features">
     <div class="section-header">
-        <h2>Why Choose LegalAI?</h2>
-        <p>Bridging the gap between complex legal information and everyday users.</p>
+      <h2>Why Choose LegalAI?</h2>
+      <p>Bridging the gap between complex legal information and everyday users.</p>
     </div>
     <div class="feature-grid">
-        <div class="feature-card">
-            <div class="icon">🔍</div>
-            <h3>Semantic Legal Search</h3>
-            <p>Go beyond keyword matching. Our AI understands the context of your query to find exactly what you need.</p>
-        </div>
-        <div class="feature-card">
-            <div class="icon">📜</div>
-            <h3>Verified Sources</h3>
-            <p>Every answer is grounded in trusted legal documents, ensuring high accuracy and reliability.</p>
-        </div>
-        <div class="feature-card">
-            <div class="icon">💡</div>
-            <h3>Simplified Explanations</h3>
-            <p>Complex legal jargon translated into easy-to-understand language for students and the general public.</p>
-        </div>
+      <div class="feature-card">
+        <div class="icon">🔍</div>
+        <h3>Semantic Legal Search</h3>
+        <p>Go beyond keyword matching. Our AI understands the context of your query to find exactly what you need.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📜</div>
+        <h3>Verified Sources</h3>
+        <p>Every answer is grounded in trusted legal documents, ensuring high accuracy and reliability.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">💡</div>
+        <h3>Simplified Explanations</h3>
+        <p>Complex legal jargon translated into easy-to-understand language for students and the general public.</p>
+      </div>
     </div>
-</section>
+  </section>
 
-<section id="how-it-works" class="how-it-works">
+  <section id="how-it-works" class="how-it-works">
     <div class="section-header">
-        <h2>How It Works</h2>
-        <p>Three simple steps to empower your legal research.</p>
+      <h2>How It Works</h2>
+      <p>Three simple steps to empower your legal research.</p>
     </div>
     <div class="steps-container">
-        <div class="step-box">
-            <div class="step-number">01</div>
-            <h3>Enter Your Query</h3>
-            <p>Type your legal question in natural language. No need to know specific legal jargon or exact statute names.</p>
-        </div>
-        <div class="step-box">
-            <div class="step-number">02</div>
-            <h3>AI Analysis</h3>
-            <p>Our advanced RAG pipeline scans through thousands of verified legal documents to retrieve the most relevant context.</p>
-        </div>
-        <div class="step-box">
-            <div class="step-number">03</div>
-            <h3>Get Answers</h3>
-            <p>Receive a simplified, accurate answer backed by direct citations to the Constitution, Acts, or Case Laws.</p>
-        </div>
+      <div class="step-box">
+        <div class="step-number">01</div>
+        <h3>Enter Your Query</h3>
+        <p>Type your legal question in natural language. No need to know specific legal jargon or exact statute names.</p>
+      </div>
+      <div class="step-box">
+        <div class="step-number">02</div>
+        <h3>AI Analysis</h3>
+        <p>Our advanced RAG pipeline scans through thousands of verified legal documents to retrieve the most relevant context.</p>
+      </div>
+      <div class="step-box">
+        <div class="step-number">03</div>
+        <h3>Get Answers</h3>
+        <p>Receive a simplified, accurate answer backed by direct citations to the Constitution, Acts, or Case Laws.</p>
+      </div>
     </div>
-</section>
+  </section>
 
-<section class="bottom-cta">
+  <section class="bottom-cta">
     <div class="cta-box">
-        <h2>Ready to simplify your legal research?</h2>
-        <p>Join thousands of students, researchers, and professionals who trust LegalAI.</p>
-        <a href="#" class="btn-primary btn-large">Create Your Free Account</a>
+      <h2>Ready to simplify your legal research?</h2>
+      <p>Join thousands of students, researchers, and professionals who trust LegalAI.</p>
+      <a href="#" class="btn-primary btn-large">Create Your Free Account</a>
     </div>
-</section>
+  </section>
 {% endblock %}

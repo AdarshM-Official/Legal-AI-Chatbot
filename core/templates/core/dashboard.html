@@ -1,0 +1,237 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+/* 
+  Legal Intelligence Workspace UI 
+  A highly professional, application-like layout.
+*/
+body { background: #f4f7f9; }
+
+.workspace-wrapper { 
+    display: flex; 
+    min-height: calc(100vh - 80px); 
+    font-family: 'Outfit', sans-serif; 
+    margin-top: 80px; /* Account for fixed navbar */
+}
+
+/* Sidebar Navigation */
+.ws-sidebar { width: 280px; background: #fff; border-right: 1px solid #e2e8f0; padding: 2.5rem 1.5rem; display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0; position: sticky; top: 80px; height: calc(100vh - 80px); overflow-y: auto; }
+.ws-sidebar-title { font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; padding-left: 0.75rem; }
+.ws-nav-item { padding: 0.85rem 1.25rem; border-radius: 8px; color: #475569; font-weight: 600; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent; }
+.ws-nav-item:hover { background: #f8fafc; color: #0f172a; border-color: #e2e8f0; }
+.ws-nav-item.active { background: #0f172a; color: #fff; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15); border-color: #0f172a; }
+.ws-icon { font-size: 1.2rem; line-height: 1; }
+
+/* Main Content Area */
+.ws-main { flex: 1; padding: 3rem 4rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+@media (max-width: 1024px) { .ws-main { padding: 2rem; } .ws-sidebar { width: 240px; } }
+@media (max-width: 768px) { .workspace-wrapper { flex-direction: column; } .ws-sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e2e8f0; padding: 1.5rem; } .ws-main { padding: 1.5rem; } }
+
+.ws-header { margin-bottom: 2.5rem; }
+.ws-header h1 { font-size: 2.2rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+.ws-header p { color: #64748b; font-size: 1.1rem; }
+
+/* Authentication Banner */
+.auth-banner { background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 12px; padding: 1.5rem 2rem; color: #fff; margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+.auth-banner-text h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem; }
+.auth-banner-text p { color: #94a3b8; font-size: 0.95rem; margin: 0; }
+.btn-login { padding: 0.6rem 1.5rem; background: #fff; color: #0f172a; font-weight: 700; border-radius: 8px; text-decoration: none; transition: background 0.2s; }
+.btn-login:hover { background: #f1f5f9; }
+
+/* Data Tables / Lists */
+.ws-panel { display: none; animation: fadeUp 0.3s ease forwards; }
+.ws-panel.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.data-list { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+.data-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; align-items: center; transition: background 0.2s; text-decoration: none; color: inherit; gap: 1rem; }
+.data-row:last-child { border-bottom: none; }
+.data-row:hover { background: #f8fafc; }
+
+/* Specific Grid Overrides */
+.grid-chats { grid-template-columns: 3fr 1fr 1fr auto; }
+.grid-docs { grid-template-columns: 2.5fr 1fr 1fr auto; }
+.grid-saved { grid-template-columns: 1fr 3fr 1fr auto; }
+
+.d-col { display: flex; flex-direction: column; gap: 0.35rem; }
+.d-title { font-weight: 700; color: #0f172a; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-sub { font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 0.4rem; }
+.d-meta { font-size: 0.9rem; color: #475569; font-weight: 500; }
+
+.badge { align-self: flex-start; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.badge-completed { background: #dcfce7; color: #16a34a; }
+.badge-processing { background: #fef9c3; color: #ca8a04; }
+.badge-failed { background: #fee2e2; color: #dc2626; }
+.badge-law { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+
+.btn-action { padding: 0.55rem 1.2rem; border-radius: 8px; font-size: 0.85rem; font-weight: 600; border: 1px solid #cbd5e1; color: #334155; background: #fff; cursor: pointer; transition: all 0.2s; text-decoration: none; text-align: center; }
+.btn-action:hover { border-color: #94a3b8; background: #f1f5f9; color: #0f172a; }
+
+/* Empty States */
+.empty-state { padding: 4rem 2rem; text-align: center; }
+.empty-icon { font-size: 3rem; opacity: 0.5; margin-bottom: 1rem; }
+.empty-state h3 { font-size: 1.2rem; font-weight: 700; color: #0f172a; margin-bottom: 0.5rem; }
+.empty-state p { color: #64748b; font-size: 0.95rem; margin-bottom: 1.5rem; max-width: 400px; margin-left: auto; margin-right: auto; }
+</style>
+
+<div class="workspace-wrapper">
+    <!-- Sidebar -->
+    <aside class="ws-sidebar">
+        <div class="ws-sidebar-title">Intelligence Desk</div>
+        
+        <div class="ws-nav-item active" onclick="switchPanel('analyses', this)">
+            <span class="ws-icon">📄</span> Document Analyses
+        </div>
+        <div class="ws-nav-item" onclick="switchPanel('chats', this)">
+            <span class="ws-icon">💬</span> Consultation History
+        </div>
+        <div class="ws-nav-item" onclick="switchPanel('saved', this)">
+            <span class="ws-icon">🔖</span> Saved Provisions
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ws-main">
+        <div class="ws-header">
+            <h1>Legal Workspace</h1>
+            <p>Manage your AI extractions, track consultations, and review bookmarked citations.</p>
+        </div>
+
+        {% if not user.is_authenticated %}
+        <div class="auth-banner">
+            <div class="auth-banner-text">
+                <h3><span style="font-size: 1.2rem;">🔒</span> Guest Workspace Mode</h3>
+                <p>You are viewing temporary data for this session. Log in to securely sync your research and bookmarks.</p>
+            </div>
+            <!-- Hooks into your existing auth/modal flow -->
+            <a href="#" class="btn-login" onclick="alert('Trigger login flow here')">Authenticate</a>
+        </div>
+        {% endif %}
+
+        <!-- Document Analyses Panel (Default) -->
+        <div id="panel-analyses" class="ws-panel active">
+            <div class="data-list">
+                {% if analyses %}
+                    {% for analysis in analyses %}
+                    <a href="{% url 'core:analyze_document_detail' analysis.id %}" class="data-row grid-docs">
+                        <div class="d-col">
+                            <span class="d-title">{{ analysis.file_name|default:"Unnamed Document" }}</span>
+                            <span class="d-sub">Extracted {{ analysis.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="d-col">
+                            <span class="d-meta">{{ analysis.document_type|default:"General Legal Document" }}</span>
+                        </div>
+                        <div class="d-col" style="align-items: flex-start;">
+                            <span class="badge badge-{{ analysis.status|lower }}">{{ analysis.status }}</span>
+                        </div>
+                        <div class="d-col">
+                            <span class="btn-action">View Extraction</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">📄</div>
+                        <h3>No extractions yet</h3>
+                        <p>Upload a legal document (FIR, Contract, Notice) to have the AI automatically extract clauses, parties, and risks.</p>
+                        <a href="{% url 'core:analyze_document' %}" class="btn-action" style="background:#0f172a; color:#fff; border-color:#0f172a;">Run Analysis</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Chat History Panel -->
+        <div id="panel-chats" class="ws-panel">
+            <div class="data-list">
+                {% if chats %}
+                    {% for chat in chats %}
+                    <a href="{% url 'core:chat_with_id' chat.id %}" class="data-row grid-chats">
+                        <div class="d-col">
+                            <span class="d-title">{% if chat.title %}{{ chat.title }}{% else %}Consultation #{{ chat.id }}{% endif %}</span>
+                            <span class="d-sub">ID: {{ chat.id }}</span>
+                        </div>
+                        <div class="d-col">
+                            <span class="d-sub">Started</span>
+                            <span class="d-meta">{{ chat.created_at|date:"M d, g:i a" }}</span>
+                        </div>
+                        <div class="d-col">
+                            <span class="d-sub">Last Active</span>
+                            <span class="d-meta">{{ chat.updated_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="d-col">
+                            <span class="btn-action">Resume</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon">💬</div>
+                        <h3>No consultations found</h3>
+                        <p>Your history is empty. Ask LegalAI about the Indian Penal Code, BNS, or upload a query.</p>
+                        <a href="{% url 'core:chat' %}" class="btn-action" style="background:#0f172a; color:#fff; border-color:#0f172a;">Start Consultation</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Saved Provisions Panel -->
+        <div id="panel-saved" class="ws-panel">
+            {% if not user.is_authenticated %}
+                <div class="data-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">🔖</div>
+                        <h3>Authentication Required</h3>
+                        <p>Bookmarking documents permanently saves them to your account. Please log in to view or manage bookmarks.</p>
+                    </div>
+                </div>
+            {% else %}
+                <div class="data-list">
+                    {% if saved_docs %}
+                        {% for save in saved_docs %}
+                        <a href="{% url 'core:directory' %}?q={{ save.legal_document.title|urlencode }}" class="data-row grid-saved">
+                            <div class="d-col" style="align-items: flex-start;">
+                                <span class="badge badge-law">{{ save.legal_document.doc_type }}</span>
+                            </div>
+                            <div class="d-col">
+                                <span class="d-title">{{ save.legal_document.title }}</span>
+                                <span class="d-sub" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 400px;">
+                                    {{ save.legal_document.summary }}
+                                </span>
+                            </div>
+                            <div class="d-col">
+                                <span class="d-sub">Bookmarked On</span>
+                                <span class="d-meta">{{ save.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="d-col">
+                                <span class="btn-action">Read Full Act</span>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">⚖️</div>
+                            <h3>Library is empty</h3>
+                            <p>You haven't bookmarked any legal provisions yet. Search the directory and save important acts for quick reference.</p>
+                            <a href="{% url 'core:directory' %}" class="btn-action" style="background:#0f172a; color:#fff; border-color:#0f172a;">Browse Directory</a>
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </main>
+</div>
+
+<script>
+function switchPanel(panelId, element) {
+    // Nav state
+    document.querySelectorAll('.ws-nav-item').forEach(el => el.classList.remove('active'));
+    element.classList.add('active');
+
+    // Panel state
+    document.querySelectorAll('.ws-panel').forEach(panel => panel.classList.remove('active'));
+    document.getElementById('panel-' + panelId).classList.add('active');
+}
+</script>
+{% endblock %}

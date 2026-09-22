@@ -1,0 +1,519 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<style>
+/* 
+  Legal Intelligence Workspace UI 
+  Advanced Document Analyzer Layout
+*/
+body { background: #f4f7f9; font-family: 'Outfit', sans-serif; }
+
+.analyzer-wrapper { 
+    margin-top: 80px; /* Account for fixed navbar */
+    min-height: calc(100vh - 80px);
+    padding: 3rem 5%;
+}
+
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* ── Typography & Headers ───────────────────────────────────────────── */
+.page-header { margin-bottom: 3rem; }
+.page-header h1 { font-size: 2.4rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+.page-header p { color: #64748b; font-size: 1.1rem; max-width: 600px; }
+
+/* ── Upload Engine Grid ─────────────────────────────────────────────── */
+.engine-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2.5rem;
+    margin-bottom: 4rem;
+}
+@media (max-width: 960px) {
+    .engine-grid { grid-template-columns: 1fr; }
+}
+
+.upload-panel {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 3rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.info-panel {
+    background: #0f172a;
+    color: #fff;
+    border-radius: 16px;
+    padding: 3rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Dropzone styling */
+.drop-zone { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 4rem 2rem; text-align: center; cursor: pointer; transition: all 0.2s ease; background: #f8fafc; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: #2563eb; background: #eff6ff; }
+.drop-zone .dz-icon { font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.8; }
+.drop-zone .dz-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin-bottom: 0.4rem; }
+.drop-zone .dz-hint { font-size: 0.95rem; color: #64748b; }
+.drop-zone .dz-hint span { font-weight: 700; color: #2563eb; text-decoration: underline; cursor: pointer; }
+
+/* File Info Row */
+.file-info-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; padding: 1rem 1.25rem; background: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe; display: none; }
+.file-info-row .fi-name { font-weight: 600; font-size: 0.95rem; flex: 1; color: #1e3a8a; }
+.file-info-row .fi-remove { background: #dbeafe; color: #1e3a8a; border: none; font-size: 1.1rem; cursor: pointer; padding: 0.3rem 0.6rem; border-radius: 4px; transition: background 0.2s; }
+.file-info-row .fi-remove:hover { background: #bfdbfe; }
+
+/* Controls */
+.doc-type-row { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.doc-type-row label { font-weight: 700; font-size: 0.9rem; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; }
+.doc-type-row select { width: 100%; padding: 0.85rem 1rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; font-family: inherit; color: #0f172a; outline: none; background: #fff; cursor: pointer; transition: border-color 0.2s; }
+.doc-type-row select:focus { border-color: #2563eb; }
+
+.analyze-btn { margin-top: 2.5rem; width: 100%; padding: 1.2rem; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: background 0.2s; display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+.analyze-btn:hover:not(:disabled) { background: #1d4ed8; }
+.analyze-btn:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.7; }
+
+/* Info Panel Content */
+.info-panel h3 { font-size: 1.3rem; font-weight: 800; margin-bottom: 1.5rem; color: #f8fafc; letter-spacing: 0.02em; }
+.info-list { list-style: none; padding: 0; margin: 0; flex: 1; display: flex; flex-direction: column; gap: 1.25rem; }
+.info-list li { display: flex; align-items: flex-start; gap: 1rem; }
+.info-list .icon { font-size: 1.25rem; background: rgba(255,255,255,0.1); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; }
+.info-list .text h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; color: #fff; }
+.info-list .text p { font-size: 0.85rem; color: #94a3b8; line-height: 1.5; }
+
+.info-footer { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); font-size: 0.8rem; color: #64748b; display: flex; justify-content: space-between; }
+.info-footer span { font-weight: 600; color: #94a3b8; }
+
+/* ── Recent Analyses Table ──────────────────────────────────────────── */
+.recent-section h2 { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.table-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+.recent-table { width: 100%; border-collapse: collapse; text-align: left; }
+.recent-table th { background: #f8fafc; padding: 1rem 1.5rem; font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e2e8f0; }
+.recent-table td { padding: 1.25rem 1.5rem; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; color: #334155; vertical-align: middle; }
+.recent-table tr:last-child td { border-bottom: none; }
+.recent-table tr:hover td { background: #f8fafc; }
+.rt-name { font-weight: 600; color: #0f172a; text-decoration: none; display: flex; align-items: center; gap: 0.75rem; }
+.rt-name:hover { color: #2563eb; }
+.rt-type { font-size: 0.85rem; color: #64748b; background: #f1f5f9; padding: 0.3rem 0.6rem; border-radius: 6px; font-weight: 600; display: inline-block; }
+
+/* ── Results Dashboard ──────────────────────────────────────────────── */
+.report-header { background: #0f172a; color: #fff; border-radius: 16px; padding: 2.5rem 3rem; margin-bottom: 2.5rem; box-shadow: 0 10px 30px rgba(15,23,42,0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem; }
+.rh-title { font-size: 1.8rem; font-weight: 800; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.75rem; }
+.rh-meta { display: flex; align-items: center; gap: 1rem; color: #94a3b8; font-size: 0.95rem; font-weight: 500; }
+.status-badge { padding: 0.3rem 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid rgba(255,255,255,0.2); }
+.status-completed { background: rgba(22, 163, 74, 0.2); color: #4ade80; border-color: rgba(74, 222, 128, 0.3); }
+
+.report-actions { display: flex; gap: 1rem; }
+.btn-outline-light { padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: #fff; border: 1px solid rgba(255,255,255,0.3); background: transparent; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+.btn-outline-light:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+.btn-primary-light { padding: 0.75rem 1.25rem; border-radius: 8px; font-size: 0.95rem; font-weight: 700; color: #0f172a; background: #fff; border: none; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+.btn-primary-light:hover { background: #f8fafc; transform: translateY(-1px); }
+
+.report-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+@media (max-width: 1024px) { .report-grid { grid-template-columns: 1fr; } }
+
+.rg-main { display: flex; flex-direction: column; gap: 2rem; }
+.rg-side { display: flex; flex-direction: column; gap: 2rem; }
+
+.adv-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 2.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
+.adv-card h3 { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 1rem; }
+.adv-card.card-warning { border-top: 4px solid #f59e0b; }
+.adv-card.card-warning h3 { color: #d97706; }
+
+.plain-list { list-style: none; padding: 0; margin: 0; }
+.plain-list li { padding-left: 1.5rem; position: relative; margin-bottom: 1rem; color: #334155; font-size: 1rem; line-height: 1.6; }
+.plain-list li::before { content: "•"; position: absolute; left: 0; top: -2px; font-size: 1.5rem; color: #94a3b8; }
+.risk-item::before { color: #f59e0b !important; }
+
+.prov-card { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #2563eb; border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+.prov-title { font-weight: 800; color: #0f172a; font-size: 1.1rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.75rem; }
+.prov-badge { font-size: 0.75rem; color: #475569; font-weight: 700; background: #e2e8f0; padding: 0.25rem 0.5rem; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.prov-desc { font-size: 0.95rem; color: #475569; line-height: 1.5; }
+
+/* ── Alert & Loading Overlay ────────────────────────────────────────── */
+.alert { padding: 1rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.95rem; display: none; font-weight: 600; }
+.alert-error { background: #fee2e2; border: 1px solid #fecaca; color: #991b1b; }
+
+.loading-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+.loading-overlay.active { display: flex; }
+.loading-card { background: transparent; padding: 3rem; border-radius: 16px; width: 90%; max-width: 500px; text-align: left; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+.loading-card h3 { margin-bottom: 2rem; color: #fff; font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: 1rem; }
+.loading-steps { list-style: none; padding: 0; margin: 0; border-left: 2px solid rgba(255,255,255,0.1); padding-left: 1.5rem; margin-left: 0.5rem; }
+.loading-steps li { margin-bottom: 1.5rem; color: #64748b; font-size: 1.05rem; font-weight: 500; position: relative; }
+.loading-steps li::before { content: ''; position: absolute; left: -1.9rem; top: 0.4rem; width: 12px; height: 12px; border-radius: 50%; background: #0f172a; border: 2px solid #64748b; }
+.loading-steps li.active { color: #3b82f6; font-weight: 700; }
+.loading-steps li.active::before { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+.loading-steps li.done { color: #4ade80; }
+.loading-steps li.done::before { background: #4ade80; border-color: #4ade80; }
+
+.spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="analyzer-wrapper">
+    <div class="container">
+        
+        {% if view_mode == 'result' %}
+            <!-- ================= RESULTS DASHBOARD ================= -->
+            <div class="report-header">
+                <div>
+                    <div class="rh-title">📄 {{ analysis.original_filename }}</div>
+                    <div class="rh-meta">
+                        <span>{{ analysis.get_document_type_display|default:analysis.document_type }}</span>
+                        <span>•</span>
+                        <span>Extracted {{ analysis.created_at|date:'d M Y, H:i' }}</span>
+                        <span>•</span>
+                        <span class="status-badge status-{{ analysis.status }}">Intelligence {{ analysis.status|title }}</span>
+                    </div>
+                </div>
+                <div class="report-actions">
+                    <a href="{% url 'core:analyze_document' %}" class="btn-outline-light">New Upload</a>
+                    <a href="{% url 'core:chat' %}?analysis_id={{ analysis.id }}" class="btn-primary-light">💬 Chat with Document</a>
+                </div>
+            </div>
+
+            {% if result %}
+            <div class="report-grid">
+                <!-- Left Column (Main Analysis) -->
+                <div class="rg-main">
+                    <div class="adv-card">
+                        <h3>📋 Executive Summary</h3>
+                        <p style="line-height: 1.7; color: #334155; font-size: 1.05rem; margin: 0;">{{ result.summary|default:'No summary generated.' }}</p>
+                    </div>
+
+                    {% if result.key_facts %}
+                    <div class="adv-card">
+                        <h3>🔑 Critical Facts Extracted</h3>
+                        <ul class="plain-list">
+                            {% for fact in result.key_facts %}
+                                <li>{{ fact }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if result.rag_provisions %}
+                    <div class="adv-card">
+                        <h3>📚 AI-Matched Legal Provisions</h3>
+                        <div style="margin-top: 1rem;">
+                            {% for prov in result.rag_provisions %}
+                                <div class="prov-card">
+                                    <div class="prov-title">
+                                        {{ prov.title }}
+                                        <span class="prov-badge">{{ prov.law_type }}</span>
+                                    </div>
+                                    <div class="prov-desc">{{ prov.summary }}</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Right Column (Entities & Risks) -->
+                <div class="rg-side">
+                    {% if result.risks or result.review_points %}
+                    <div class="adv-card card-warning">
+                        <h3>⚠️ Risk & Liability Analysis</h3>
+                        
+                        {% if result.risks %}
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Flagged Concerns</h4>
+                            <ul class="plain-list" style="margin-bottom: 2rem;">
+                                {% for risk in result.risks %}
+                                    <li class="risk-item">{{ risk }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+
+                        {% if result.review_points %}
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Requires Human Review</h4>
+                            <ul class="plain-list">
+                                {% for point in result.review_points %}
+                                    <li class="risk-item">{{ point }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="adv-card">
+                        <h3>👥 Entities & Metadata</h3>
+                        
+                        {% if result.parties %}
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Identified Parties</h4>
+                            <ul class="plain-list" style="margin-bottom: 2rem;">
+                                {% for party in result.parties %}
+                                    <li><strong style="color: #0f172a;">{{ party.role }}:</strong> {{ party.name }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+
+                        {% if result.important_dates %}
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">Critical Dates</h4>
+                            <ul class="plain-list">
+                                {% for item in result.important_dates %}
+                                    <li><strong style="color: #0f172a;">{{ item.date }}:</strong> {{ item.description }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="background: #fff; padding: 5rem 2rem; text-align: center; border-radius: 16px; border: 1px solid #e2e8f0; color: #64748b; font-size: 1.1rem;">
+                Analysis data is not yet available or failed to process.
+            </div>
+            {% endif %}
+
+        {% else %}
+            <!-- ================= UPLOAD ENGINE ================= -->
+            <div class="page-header">
+                <h1>Document Intelligence Engine</h1>
+                <p>Upload legal documents for deep AI-driven extraction, entity recognition, and penal code cross-referencing.</p>
+            </div>
+
+            <div class="engine-grid">
+                <!-- Left: Upload Box -->
+                <div class="upload-panel">
+                    <div id="alertBox" class="alert alert-error"></div>
+
+                    <div class="drop-zone" id="dropZone">
+                        <div class="dz-icon">📄</div>
+                        <div class="dz-title">Drag &amp; drop document to ingest</div>
+                        <div class="dz-hint">
+                            or <span onclick="document.getElementById('fileInput').click()">browse your local files</span>
+                        </div>
+                    </div>
+
+                    <div class="file-info-row" id="fileInfoRow">
+                        <span style="font-size:1.5rem;">📄</span>
+                        <span class="fi-name" id="fiName"></span>
+                        <button class="fi-remove" onclick="clearFile()" title="Remove File">✕</button>
+                    </div>
+
+                    <div class="doc-type-row">
+                        <label for="docTypeSelect">Document Classification</label>
+                        <select id="docTypeSelect">
+                            <option value="auto">🔍 Auto Detect Configuration</option>
+                            <option value="fir">FIR (First Information Report)</option>
+                            <option value="legal_notice">Legal Notice / Demand</option>
+                            <option value="agreement">Agreement / Contract</option>
+                        </select>
+                    </div>
+
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.txt" style="display:none;" />
+
+                    <button class="analyze-btn" id="analyzeBtn" disabled onclick="submitAnalysis()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-9 5 18 3-9h5"></path></svg>
+                        Run Intelligence Pipeline
+                    </button>
+                </div>
+
+                <!-- Right: Info Panel -->
+                <div class="info-panel">
+                    <h3>Engine Capabilities</h3>
+                    <ul class="info-list">
+                        <li>
+                            <div class="icon">🧠</div>
+                            <div class="text">
+                                <h4>Deep Fact Extraction</h4>
+                                <p>Automatically identifies and structures complex narratives into chronological, digestible key facts.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="icon">⚖️</div>
+                            <div class="text">
+                                <h4>Provisions Matching</h4>
+                                <p>Cross-references extracted facts with IPC, BNS, and BNSS to suggest applicable legal frameworks.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="icon">⚠️</div>
+                            <div class="text">
+                                <h4>Risk & Liability Flagging</h4>
+                                <p>Highlights potential liabilities, missing clauses, and critical dates requiring immediate attention.</p>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="info-footer">
+                        <span>Supported: PDF, DOCX, TXT</span>
+                        <span>Max Size: {{ max_upload_mb|default:10 }} MB</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Analyses Data Table -->
+            {% if recent_analyses %}
+            <div class="recent-section">
+                <h2>Recent Ingestions</h2>
+                <div class="table-container">
+                    <table class="recent-table">
+                        <thead>
+                            <tr>
+                                <th>Document Name</th>
+                                <th>Classification</th>
+                                <th>Date Processed</th>
+                                <th style="text-align: right;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in recent_analyses %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'core:analyze_document_detail' item.id %}" class="rt-name">
+                                        <span style="font-size: 1.2rem;">📄</span> {{ item.original_filename }}
+                                    </a>
+                                </td>
+                                <td><span class="rt-type">{{ item.get_document_type_display|default:item.document_type }}</span></td>
+                                <td>{{ item.created_at|date:'d M Y, H:i' }}</td>
+                                <td style="text-align: right;">
+                                    <a href="{% url 'core:analyze_document_detail' item.id %}" style="color: #2563eb; font-weight: 700; font-size: 0.9rem; text-decoration: none;">View Report →</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        {% endif %}
+    </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <h3><div class="spinner"></div> Pipeline Active</h3>
+    <ul class="loading-steps" id="loadingSteps">
+      <li id="step1" class="active">OCR & Text Extraction</li>
+      <li id="step2">Neural Legal Analysis</li>
+      <li id="step3">Cross-referencing Provisions</li>
+    </ul>
+    <p style="margin-top: 2.5rem; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">Encrypted processing in progress. This usually takes 10-20 seconds.</p>
+  </div>
+</div>
+
+<script>
+  let selectedFile = null
+  const MAX_MB = {{ max_upload_mb|default:10 }}
+  
+  const dropZone = document.getElementById('dropZone')
+  const fileInput = document.getElementById('fileInput')
+  const fileInfoRow = document.getElementById('fileInfoRow')
+  const fiName = document.getElementById('fiName')
+  const analyzeBtn = document.getElementById('analyzeBtn')
+  const alertBox = document.getElementById('alertBox')
+  const overlay = document.getElementById('loadingOverlay')
+  
+  if (dropZone) {
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault()
+        dropZone.classList.add('drag-over')
+      })
+      dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault()
+        dropZone.classList.remove('drag-over')
+      })
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault()
+        dropZone.classList.remove('drag-over')
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleFile(e.dataTransfer.files[0])
+        }
+      })
+  }
+
+  if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleFile(e.target.files[0])
+        }
+      })
+  }
+  
+  function handleFile(file) {
+    if (alertBox) alertBox.style.display = 'none'
+    const ext = file.name.split('.').pop().toLowerCase()
+    if (!['pdf', 'docx', 'txt'].includes(ext)) {
+      showError('Only PDF, DOCX, and TXT formats are supported.')
+      clearFile()
+      return
+    }
+    const sizeMb = file.size / (1024 * 1024)
+    if (sizeMb > MAX_MB) {
+      showError(`File size exceeds ${MAX_MB}MB limit.`)
+      clearFile()
+      return
+    }
+  
+    selectedFile = file
+    fiName.textContent = file.name
+    dropZone.style.display = 'none'
+    fileInfoRow.style.display = 'flex'
+    analyzeBtn.disabled = false
+  }
+  
+  function clearFile() {
+    selectedFile = null
+    fileInput.value = ''
+    fiName.textContent = ''
+    fileInfoRow.style.display = 'none'
+    dropZone.style.display = 'block'
+    analyzeBtn.disabled = true
+  }
+  
+  function showError(msg) {
+    if (alertBox) {
+        alertBox.textContent = msg
+        alertBox.style.display = 'block'
+    } else {
+        alert(msg)
+    }
+  }
+  
+  async function submitAnalysis() {
+    if (!selectedFile) return
+    
+    // UI Loading state
+    overlay.classList.add('active')
+    
+    // Simulate steps progress visually
+    setTimeout(() => {
+      document.getElementById('step1').classList.replace('active', 'done')
+      document.getElementById('step2').classList.add('active')
+    }, 2000)
+    
+    setTimeout(() => {
+      document.getElementById('step2').classList.replace('active', 'done')
+      document.getElementById('step3').classList.add('active')
+    }, 6000)
+  
+    const formData = new FormData()
+    formData.append('document', selectedFile)
+    formData.append('doc_type', document.getElementById('docTypeSelect').value)
+  
+    try {
+      const res = await fetch('{% url "core:api_analyze_document" %}', {
+        method: 'POST',
+        body: formData
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        window.location.href = data.redirect_url
+      } else {
+        if (overlay) overlay.classList.remove('active')
+        showError(data.error || 'Pipeline failed to process the document.')
+      }
+    } catch (err) {
+      if (overlay) overlay.classList.remove('active')
+      showError('Secure connection failed while transmitting.')
+    }
+  }
+</script>
+{% endblock %}
