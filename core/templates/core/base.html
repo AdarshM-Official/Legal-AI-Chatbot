@@ -21,7 +21,12 @@
         <a href="{% url 'core:index' %}#how-it-works">How it Works</a>
       </div>
       <div class="nav-actions">
-        <a href="#" class="btn-primary">Log In</a>
+        {% if request.user.is_authenticated %}
+            <span style="font-weight:600;font-size:.9rem;color:#64748b;margin-right:1rem;">👤 {{ request.user.username }}</span>
+            <a href="{% url 'core:auth_logout' %}" class="btn-primary" style="background:#e2e8f0;color:#0f172a;">Logout</a>
+        {% else %}
+            <a href="#" class="btn-primary">Log In</a>
+        {% endif %}
       </div>
     </nav>
     <main>

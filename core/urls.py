@@ -18,4 +18,9 @@ urlpatterns = [
     path('analyze-document/', views.analyze_document, name='analyze_document'),
     path('analyze-document/<int:analysis_id>/', views.analyze_document_detail, name='analyze_document_detail'),
     path('api/analyze-document/', views.api_analyze_document, name='api_analyze_document'),
+
+    # Auth
+    path('auth/login/', views.auth_login, name='auth_login'),
+    path('auth/register/', views.auth_register, name='auth_register'),
+    path('auth/logout/', views.auth_logout, name='auth_logout'),
 ]

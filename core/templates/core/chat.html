@@ -373,7 +373,7 @@
         {% endif %}
 
         <div class="w-chat-scroll" id="chatMessages">
-            {% for message in messages %}
+            {% for message in chat_messages %}
                 {% if message.role == 'user' %}
                 <div class="w-entry w-entry-user">
                     <div class="w-entry-content">{{ message.content }}</div>
@@ -561,10 +561,13 @@
             const payload = { message: text };
             if (currentChatId) {
                 payload.chat_id = parseInt(currentChatId, 10);
+            } else {
+                const urlParams = new URLSearchParams(window.location.search);
+                const initialAnalysisId = urlParams.get('analysis_id') || '{{ initial_analysis_id|default:"" }}';
+                if (initialAnalysisId) {
+                    payload.analysis_id = parseInt(initialAnalysisId, 10);
+                }
             }
-            
-            // Note: If continuing from Document Analyzer, you might want to inject analysis_id here,
-            // but the backend needs to read it. Left standard for now per requirement to "preserve existing API".
 
             try {
                 const response = await fetch('/api/chat/', {

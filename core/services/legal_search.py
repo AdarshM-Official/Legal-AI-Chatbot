@@ -81,7 +81,8 @@ def hybrid_search(query: str, filters: dict, sort_by: str = 'relevance', limit: 
     if not db_types:
         db_types = ['Statute', 'BNS', 'BNSS', 'BSA', 'Case Law']
         
-    base_qs = LegalDocument.objects.filter(doc_type__in=db_types)
+    # Optimize memory by deferring the heavy 'content' text field.
+    base_qs = LegalDocument.objects.filter(doc_type__in=db_types).defer('content')
     
     results = {}  # doc.id -> dict
     
@@ -116,8 +117,9 @@ def hybrid_search(query: str, filters: dict, sort_by: str = 'relevance', limit: 
         add_result(doc, 80.0, "Title Match")
 
     # 3. Keyword Match (title, summary, content)
+    # Remove full-table scan on 'content'. Let ChromaDB handle deep semantic text matches.
     kw_qs = base_qs.filter(
-        Q(title__icontains=query) | Q(summary__icontains=query) | Q(content__icontains=query)
+        Q(title__icontains=query) | Q(summary__icontains=query)
     )
     for doc in kw_qs[:50]:
         # Give higher score if query is small and matches exact word, else basic score

@@ -140,9 +140,12 @@ def api_chat(request):
         try:
             session = ChatSession.objects.get(id=chat_id)
             if request.user.is_authenticated:
-                # Authenticated users may only access their own chats
-                if session.user != request.user:
+                # Authenticated users may only access their own chats or claim anonymous ones
+                if session.user != request.user and session.user is not None:
                     return JsonResponse({'error': 'Unauthorized access to chat'}, status=403)
+                elif session.user is None:
+                    session.user = request.user
+                    session.save()
             else:
                 # Anonymous users may only continue anonymous chats (user=None).
                 # We do NOT track chat_ids via the Django session cookie here because
@@ -158,7 +161,17 @@ def api_chat(request):
     else:
         title = user_message[:40] + '...' if len(user_message) > 40 else user_message
         user = request.user if request.user.is_authenticated else None
-        session = ChatSession.objects.create(user=user, title=title)
+        
+        analysis_obj = None
+        analysis_id = data.get('analysis_id')
+        if analysis_id:
+            from core.models import DocumentAnalysis
+            try:
+                analysis_obj = DocumentAnalysis.objects.get(id=analysis_id)
+            except DocumentAnalysis.DoesNotExist:
+                pass
+                
+        session = ChatSession.objects.create(user=user, title=title, analysis=analysis_obj)
 
     # Save the user message immediately
     ChatMessage.objects.create(session=session, role='user', content=user_message)
@@ -189,9 +202,14 @@ def api_chat(request):
     messages_for_api = [{"role": "system", "content": RAG_SYSTEM_PROMPT}]
 
     # Inject legal context as the first user turn (before history)
-    if retrieved_docs:
-        legal_context = _build_legal_context(retrieved_docs)
+    doc_context = ""
+    if session.analysis and session.analysis.extracted_text:
+        doc_context = f"=== UPLOADED DOCUMENT ({session.analysis.original_filename}) ===\n{session.analysis.extracted_text[:15000]}\n=== END OF DOCUMENT ===\nThe user may ask questions about this uploaded document.\n\n"
+
+    if retrieved_docs or doc_context:
+        legal_context = _build_legal_context(retrieved_docs) if retrieved_docs else ""
         user_turn_with_context = (
+            f"{doc_context}"
             f"{legal_context}"
             f"USER QUESTION:\n{user_message}"
         )
@@ -204,7 +222,7 @@ def api_chat(request):
         messages_for_api.append({"role": "user", "content": user_turn_with_context})
 
     else:
-        # No RAG context — still answer but with a note that no sources were found
+        # No RAG context and no document context
         no_context_note = (
             "=== LEGAL CONTEXT ===\n"
             "No relevant documents were retrieved from the LegalAI database for this query.\n"
@@ -309,16 +327,35 @@ def chat(request, chat_id=None):
     current_chat = None
     messages = []
     past_chats = []
+    initial_analysis_id = request.GET.get('analysis_id')
 
     if request.user.is_authenticated:
         past_chats = ChatSession.objects.filter(user=request.user).order_by('-updated_at')
-
-        if chat_id:
-            try:
-                current_chat = ChatSession.objects.get(id=chat_id, user=request.user)
+        
+    if chat_id:
+        try:
+            # Look up the chat by ID
+            session = ChatSession.objects.get(id=chat_id)
+            
+            if request.user.is_authenticated:
+                # If logged in, can access their own chats and anonymous chats
+                if session.user == request.user:
+                    current_chat = session
+                elif session.user is None:
+                    # Claim the anonymous chat for the logged-in user
+                    session.user = request.user
+                    session.save()
+                    current_chat = session
+            else:
+                # If not logged in, can ONLY access anonymous chats
+                if session.user is None:
+                    current_chat = session
+                    
+            if current_chat:
                 messages = current_chat.messages.all().order_by('created_at')
-            except ChatSession.DoesNotExist:
-                pass
+                
+        except ChatSession.DoesNotExist:
+            pass
 
     # Attach citations to AI messages for rendering in the template
     if messages:
@@ -335,7 +372,8 @@ def chat(request, chat_id=None):
     return render(request, 'core/chat.html', {
         'past_chats': past_chats,
         'current_chat': current_chat,
-        'messages': messages,
+        'chat_messages': messages,
+        'initial_analysis_id': initial_analysis_id,
     })
 
 
@@ -370,7 +408,7 @@ def directory(request):
             if t == 'IPC': db_types.append('Statute')
             else: db_types.append(t)
             
-        base_qs = LegalDocument.objects.filter(title__in=important_sections, doc_type__in=db_types).order_by('id')
+        base_qs = LegalDocument.objects.filter(title__in=important_sections, doc_type__in=db_types).defer('content').order_by('id')
         search_results = []
         for doc in base_qs:
             search_results.append({
@@ -616,3 +654,57 @@ def api_analyze_document(request):
         'redirect_url': reverse('core:analyze_document_detail', args=[analysis.id])
     })
 
+
+
+# ---------------------------------------------------------------------------
+# Authentication Views
+# ---------------------------------------------------------------------------
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.shortcuts import redirect
+from django.contrib import messages
+
+def auth_login(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        # Django auth typically uses username. We'll use email as username or allow lookup
+        try:
+            user_obj = User.objects.get(email=email)
+            username = user_obj.username
+        except User.DoesNotExist:
+            try:
+                user_obj = User.objects.get(username=email)
+                username = user_obj.username
+            except User.DoesNotExist:
+                username = None
+
+        if username:
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+            else:
+                messages.error(request, 'Invalid password.')
+        else:
+            messages.error(request, 'User not found.')
+            
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+def auth_register(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        
+        if User.objects.filter(email=email).exists() or User.objects.filter(username=email).exists():
+            messages.error(request, 'Email already exists.')
+        else:
+            user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+            login(request, user)
+            
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+def auth_logout(request):
+    logout(request)
+    return redirect('/')
